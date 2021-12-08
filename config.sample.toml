@@ -1,0 +1,57 @@
+[global]
+# Hostname and port of the authoritative DNS server. If no port is specified,
+# then port 53 is used.
+name_server = ""
+
+# The zone to use in the question section of the DNS update. If unspecified, a
+# query for the SOA will be made to determine the appropriate zone.
+#zone = ""
+
+# Hostname to use for the dynamic DNS update. Defaults to the system's current
+# hostname.
+#hostname = ""
+
+# TTL to use for DNS records. Defaults to 300.
+#ttl = 300
+
+# Timeout for connections to the DNS server. Defaults to 5 seconds.
+#timeout = 5
+
+# Protocol for communication with the DNS server. Defaults to `udp`. Supported
+# protocols are `tcp` or `udp`. DNS-over-TLS and DNS-over-HTTPS are connections
+# to the authoritative DNS server are not supported.
+#
+# Due to a bug, using `tcp` will currently result in a 5 second delay after the
+# DDNS update response is received. See:
+# https://github.com/bluejekyll/trust-dns/issues/1607
+#protocol = "udp"
+
+# The interface to query IP addresses for populating A/AAAA records. If no
+# interface is specified, a connection to the DNS server will be made over TCP
+# port 53 and the source IP of that connection is used to pick the interface.
+# This happens even if `protocol` is set to `udp` when no interface is specified.
+#
+# All valid IP addresses of the selected interface (whether autodetected or not)
+# will be used. An IP is considered valid if it is not multicast (v4/v6), not
+# loopback (v4/v6), not link local (v4/v6), and not broadcast (v4).
+#interface = ""
+
+# Logging verbosity, which can be set to `info`, `debug`, or `trace`. Defaults to
+# `info`. The `debug` level will print out information as it is being queried.
+# The `trace` level will log as much information as possible, *including the TSIG
+# secret*.
+#
+# If the standard RUST_LOG environment variable is set, it supercedes this config
+# option.
+#log_level = "info"
+
+[tsig]
+# TSIG key name.
+name = ""
+
+# TSIG algorithm. The supported algorithms are `hmac-sha256`, `hmac-sha384`, and
+# `hmac-sha512`.
+algorithm = ""
+
+# TSIG secret in base64-encoded form.
+secret = ""

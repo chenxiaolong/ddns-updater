@@ -1,0 +1,95 @@
+---
+on:
+  push:
+    # Uncomment to test against a branch
+    #branches:
+    #  - ci
+    tags:
+      - 'v*'
+jobs:
+  create_release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              version=${GITHUB_REF#refs/tags/v}
+          else
+              version=0.0.0-${GITHUB_REF#refs/heads/}
+          fi
+          echo "::set-output name=version::${version}"
+
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Version ${{ steps.get_version.outputs.version }}
+
+  build_and_upload:
+    name: Build and upload assets
+    needs: create_release
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Get Rust LLVM target triple
+        id: get_target
+        shell: bash
+        run: |
+          echo -n '::set-output name=name::'
+          RUSTC_BOOTSTRAP=1 rustc -Z unstable-options --print target-spec-json \
+              | jq -r '."llvm-target"'
+
+      - name: Install clippy
+        run: rustup component add clippy
+
+      - name: Run tests in release mode
+        env:
+          RUST_BACKTRACE: 1
+        run: |
+          cargo clippy --workspace --release -- -D warnings
+          cargo test --workspace --release
+
+      - name: Build in release mode
+        run: cargo build --release --verbose
+
+      - name: Strip release binary (non-Windows)
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        run: strip target/release/ddns-updater
+
+      - name: Build archive
+        shell: bash
+        run: |
+          base_name=ddns-updater-${{ needs.create_release.outputs.version }}-${{ steps.get_target.outputs.name }}
+          mkdir "${base_name}"
+          cp {README.md,LICENSE} "${base_name}/"
+
+          if [[ "${{ matrix.os }}" == windows-* ]]; then
+              cp target/release/ddns-updater.exe "${base_name}/"
+              7z a "${base_name}.zip" "${base_name}"
+              echo "ASSET=${base_name}.zip" >> "${GITHUB_ENV}"
+          else
+              cp target/release/ddns-updater "${base_name}/"
+              tar -Jcvf "${base_name}.tar.xz" "${base_name}"
+              echo "ASSET=${base_name}.tar.xz" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.create_release.outputs.version }}
+          files: ${{ env.ASSET }}
