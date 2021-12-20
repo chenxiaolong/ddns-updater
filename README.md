@@ -43,3 +43,8 @@ To enable trace logging for everything, including the underlying trust-dns libra
 ## License
 
 ddns-updater is licensed under the GPLv3 license. For details, please see [`LICENSE`](./LICENSE).
+
+## Similar software
+
+* [ddclient](https://github.com/ddclient/ddclient)
+* [ifdyndnsd](https://github.com/astro/ifdyndnsd)
