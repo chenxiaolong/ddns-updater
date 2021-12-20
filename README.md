@@ -39,3 +39,7 @@ To enable trace logging for everything, including the underlying trust-dns libra
 * It is not possible to only update A records or only update AAAA records if the interface is dual-stack.
 * Querying the "public" IP from online services will never be supported.
 * Dynamic updates are made atomically by clearing all existing A/AAAA records and inserting the new records in the same request. However, some servers may not conform perfectly to RFC 2136 and may not implement the atomicity guarantees.
+
+## License
+
+ddns-updater is licensed under the GPLv3 license. For details, please see [`LICENSE`](./LICENSE).
