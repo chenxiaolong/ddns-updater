@@ -80,16 +80,23 @@ jobs:
 
           if [[ "${{ matrix.os }}" == windows-* ]]; then
               cp target/release/ddns-updater.exe "${base_name}/"
-              7z a "${base_name}.zip" "${base_name}"
-              echo "ASSET=${base_name}.zip" >> "${GITHUB_ENV}"
+              asset="${base_name}.zip"
+              7z a "${asset}" "${base_name}"
           else
               cp target/release/ddns-updater "${base_name}/"
-              tar -Jcvf "${base_name}.tar.xz" "${base_name}"
-              echo "ASSET=${base_name}.tar.xz" >> "${GITHUB_ENV}"
+              asset="${base_name}.tar.xz"
+              tar -Jcvf "${asset}" "${base_name}"
           fi
+
+          openssl sha512 -r "${asset}" > "${asset}.sha512"
+
+          echo "ASSET=${asset}" >> "${GITHUB_ENV}"
+          echo "ASSET_SHA512=${asset}.sha512" >> "${GITHUB_ENV}"
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.create_release.outputs.version }}
-          files: ${{ env.ASSET }}
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET_SHA512 }}
