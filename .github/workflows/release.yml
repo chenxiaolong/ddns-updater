@@ -88,7 +88,7 @@ jobs:
               tar -Jcvf "${asset}" "${base_name}"
           fi
 
-          openssl sha512 -r "${asset}" > "${asset}.sha512"
+          openssl sha512 -r "${asset}" | sed 's/\*/ /' > "${asset}.sha512"
 
           echo "ASSET=${asset}" >> "${GITHUB_ENV}"
           echo "ASSET_SHA512=${asset}.sha512" >> "${GITHUB_ENV}"
