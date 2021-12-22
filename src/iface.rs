@@ -1,14 +1,17 @@
 use {
-    std::net::{IpAddr, SocketAddr, TcpStream},
-    network_interface::{Addr, NetworkInterface, NetworkInterfaceConfig},
+    std::{
+        io,
+        net::{IpAddr, SocketAddr, TcpStream},
+    },
+    netif::Interface,
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Could not connect to: {0}: {1}")]
-    Connection(SocketAddr, std::io::Error),
+    Connection(SocketAddr, io::Error),
     #[error("Error when querying network interfaces: {0}")]
-    QueryInterface(#[from] network_interface::Error),
+    QueryInterface(io::Error),
     #[error("Could not find interface with IP: {0}")]
     InterfaceNotFound(IpAddr),
 }
@@ -16,12 +19,14 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub struct Interfaces {
-    ifaces: Vec<NetworkInterface>,
+    ifaces: Vec<Interface>,
 }
 
 impl Interfaces {
     pub fn new() -> Result<Self> {
-        let ifaces = NetworkInterface::show()?;
+        let ifaces = netif::all()
+            .map_err(Error::QueryInterface)?
+            .collect();
 
         Ok(Self {
             ifaces,
@@ -32,10 +37,9 @@ impl Interfaces {
         let mut found = false;
 
         let addrs = self.ifaces.iter()
-            .filter(|iface| iface.name == name)
+            .filter(|iface| iface.name() == name)
             .inspect(|_| found = true)
-            .filter_map(|iface| iface.addr)
-            .map(Self::ip_from_addr)
+            .map(|iface| *iface.address())
             .collect();
 
         if found {
@@ -48,24 +52,10 @@ impl Interfaces {
     pub fn get_iface_by_tcp_source_ip(&self, server: SocketAddr) -> Result<&str> {
         let source_ip = Self::get_tcp_source_ip(server)?;
 
-        self.ifaces.iter().find(|iface| {
-            if let Some(addr) = iface.addr {
-                if Self::ip_from_addr(addr) == source_ip {
-                    return true;
-                }
-            }
-
-            false
-        })
-            .map(|iface| iface.name.as_str())
+        self.ifaces.iter()
+            .find(|iface| *iface.address() == source_ip)
+            .map(|iface| iface.name())
             .ok_or(Error::InterfaceNotFound(source_ip))
-    }
-
-    fn ip_from_addr(addr: Addr) -> IpAddr {
-        match addr {
-            Addr::V4(a) => IpAddr::V4(a.ip),
-            Addr::V6(a) => IpAddr::V6(a.ip),
-        }
     }
 
     fn get_tcp_source_ip(server: SocketAddr) -> Result<IpAddr> {
