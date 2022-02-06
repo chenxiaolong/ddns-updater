@@ -24,7 +24,7 @@ pub struct Interfaces {
 
 impl Interfaces {
     pub fn new() -> Result<Self> {
-        let ifaces = netif::all()
+        let ifaces = netif::up()
             .map_err(Error::QueryInterface)?
             .collect();
 
