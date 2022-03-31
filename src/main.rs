@@ -170,7 +170,7 @@ fn main_wrapper() -> Result<()> {
         env_logger::Env::default()
             .default_filter_or(format!(
                 "{}={}",
-                env!("CARGO_PKG_NAME").replace("-", "_"),
+                env!("CARGO_PKG_NAME").replace('-', "_"),
                 config.global.log_level,
             ))
     )
