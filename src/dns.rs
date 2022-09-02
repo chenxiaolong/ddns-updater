@@ -82,8 +82,8 @@ impl Client for DnsClient {
 /// them with the specified addresses. With a supported servers, this operation
 /// should be atomic.
 pub fn replace_addrs_message(
-    zone_origin: Name,
-    name: Name,
+    zone_origin: &Name,
+    name: &Name,
     ttl: u32,
     addrs: &[IpAddr],
 ) -> Message {
@@ -91,7 +91,7 @@ pub fn replace_addrs_message(
     const MAX_PAYLOAD_LEN: u16 = 1232;
 
     let mut zone = Query::new();
-    zone.set_name(zone_origin)
+    zone.set_name(zone_origin.clone())
         .set_query_class(DNSClass::IN)
         .set_query_type(RecordType::SOA);
 

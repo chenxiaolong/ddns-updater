@@ -61,7 +61,7 @@ pub enum Protocol {
 }
 
 impl Protocol {
-    pub fn default_port(&self) -> u16 {
+    pub fn default_port(self) -> u16 {
         53
     }
 }
@@ -129,9 +129,9 @@ pub enum Algorithm {
 impl From<Algorithm> for TsigAlgorithm {
     fn from(algo: Algorithm) -> Self {
         match algo {
-            Algorithm::HmacSha256 => TsigAlgorithm::HmacSha256,
-            Algorithm::HmacSha384 => TsigAlgorithm::HmacSha384,
-            Algorithm::HmacSha512 => TsigAlgorithm::HmacSha512,
+            Algorithm::HmacSha256 => Self::HmacSha256,
+            Algorithm::HmacSha384 => Self::HmacSha384,
+            Algorithm::HmacSha512 => Self::HmacSha512,
         }
     }
 }

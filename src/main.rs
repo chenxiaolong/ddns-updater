@@ -122,14 +122,14 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
                 return Err(Error::AuthoritativeZoneNotFound(name.into_owned()));
             }
 
-            Cow::Owned(authority[0].name().to_owned())
+            Cow::Owned(authority[0].name().clone())
         }
     };
     debug!("Zone: {}", zone);
 
     let request = dns::replace_addrs_message(
-        zone.clone().into_owned(),
-        name.clone().into_owned(),
+        &zone,
+        &name,
         config.global.ttl.0,
         &valid_addrs,
     );
