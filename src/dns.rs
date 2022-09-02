@@ -8,7 +8,7 @@ use {
     trust_dns_client::{
         client::{AsyncClient, Client, SyncClient},
         error::ClientResult,
-        op::{Message, MessageType, OpCode, Query, UpdateMessage},
+        op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
         proto::{
             error::ProtoError,
             xfer::DnsExchangeSend,
@@ -118,9 +118,11 @@ pub fn replace_addrs_message(
         message.add_update(Record::from_rdata(name.clone(), ttl, rdata));
     }
 
-    let edns = message.edns_mut();
-    edns.set_max_payload(MAX_PAYLOAD_LEN);
-    edns.set_version(0);
+    message
+        .extensions_mut()
+        .get_or_insert_with(Edns::new)
+        .set_max_payload(MAX_PAYLOAD_LEN)
+        .set_version(0);
 
     message
 }
