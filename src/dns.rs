@@ -8,7 +8,7 @@ use {
     trust_dns_client::{
         client::{AsyncClient, Client, SyncClient},
         error::ClientResult,
-        op::{Message, MessageType, OpCode, Query, UpdateMessage},
+        op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
         proto::{
             error::ProtoError,
             xfer::DnsExchangeSend,
@@ -82,8 +82,8 @@ impl Client for DnsClient {
 /// them with the specified addresses. With a supported servers, this operation
 /// should be atomic.
 pub fn replace_addrs_message(
-    zone_origin: Name,
-    name: Name,
+    zone_origin: &Name,
+    name: &Name,
     ttl: u32,
     addrs: &[IpAddr],
 ) -> Message {
@@ -91,7 +91,7 @@ pub fn replace_addrs_message(
     const MAX_PAYLOAD_LEN: u16 = 1232;
 
     let mut zone = Query::new();
-    zone.set_name(zone_origin)
+    zone.set_name(zone_origin.clone())
         .set_query_class(DNSClass::IN)
         .set_query_type(RecordType::SOA);
 
@@ -118,9 +118,11 @@ pub fn replace_addrs_message(
         message.add_update(Record::from_rdata(name.clone(), ttl, rdata));
     }
 
-    let edns = message.edns_mut();
-    edns.set_max_payload(MAX_PAYLOAD_LEN);
-    edns.set_version(0);
+    message
+        .extensions_mut()
+        .get_or_insert_with(Edns::new)
+        .set_max_payload(MAX_PAYLOAD_LEN)
+        .set_version(0);
 
     message
 }

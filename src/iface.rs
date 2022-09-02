@@ -54,7 +54,7 @@ impl Interfaces {
 
         self.ifaces.iter()
             .find(|iface| *iface.address() == source_ip)
-            .map(|iface| iface.name())
+            .map(Interface::name)
             .ok_or(Error::InterfaceNotFound(source_ip))
     }
 
