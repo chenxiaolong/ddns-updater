@@ -10,24 +10,24 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-env_logger = "0.9.3"
-gethostname = "0.4.0"
+env_logger = "0.10.0"
+gethostname = "0.4.1"
 log = "0.4.17"
 netif = "0.1.6"
 rand = "0.8.5"
-thiserror = "1.0.37"
-toml = "0.5.9"
+thiserror = "1.0.38"
+toml = "0.7.2"
 
 [dependencies.clap]
-version = "4.0.26"
+version = "4.1.6"
 features = ["derive"]
 
 [dependencies.serde]
-version = "1.0.147"
+version = "1.0.152"
 features = ["derive"]
 
 [dependencies.serde_with]
-version = "2.1.0"
+version = "2.2.0"
 features = ["base64", "macros"]
 
 [dependencies.trust-dns-client]
