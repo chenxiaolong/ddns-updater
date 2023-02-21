@@ -23,7 +23,7 @@ use {
     crate::config::Protocol,
 };
 
-/// trust_dns_client::client::NewFutureObj is not public
+/// `trust_dns_client::client::NewFutureObj` is not public
 type NewFutureObj<H> = Pin<
     Box<
         dyn Future<

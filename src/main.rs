@@ -202,10 +202,7 @@ fn main_wrapper() -> Result<()> {
         }
     }
 
-    match last_error {
-        Some(e) => Err(e),
-        None => Ok(()),
-    }
+    last_error.map_or(Ok(()), Err)
 }
 
 fn main() {
@@ -213,9 +210,9 @@ fn main() {
         Ok(_) => {}
         Err(e) => {
             if LOGGING_INITIALIZED.load(Ordering::SeqCst) {
-                error!("{}", e);
+                error!("{e}");
             } else {
-                eprintln!("{}", e);
+                eprintln!("{e}");
             }
             std::process::exit(1);
         }
