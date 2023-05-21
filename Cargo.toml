@@ -27,7 +27,7 @@ version = "1.0.152"
 features = ["derive"]
 
 [dependencies.serde_with]
-version = "2.2.0"
+version = "3.0.0"
 features = ["base64", "macros"]
 
 [dependencies.trust-dns-client]
