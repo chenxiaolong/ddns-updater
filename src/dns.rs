@@ -5,17 +5,17 @@ use {
         pin::Pin,
         time::Duration,
     },
-    trust_dns_client::{
+    hickory_client::{
         client::{AsyncClient, Client, SyncClient},
         error::ClientResult,
         op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
         proto::{
             error::ProtoError,
+            rr::{
+                dnssec::tsig::TSigner,
+                DNSClass, Name, RData, Record, RecordType,
+            },
             xfer::DnsExchangeSend,
-        },
-        rr::{
-            dnssec::tsig::TSigner,
-            DNSClass, Name, RData, Record, RecordType,
         },
         tcp::TcpClientConnection,
         udp::UdpClientConnection,
@@ -111,8 +111,8 @@ pub fn replace_addrs_message(
 
     for addr in addrs {
         let rdata = match addr {
-            IpAddr::V4(ip) => RData::A(*ip),
-            IpAddr::V6(ip) => RData::AAAA(*ip),
+            IpAddr::V4(ip) => RData::A((*ip).into()),
+            IpAddr::V6(ip) => RData::AAAA((*ip).into()),
         };
 
         message.add_update(Record::from_rdata(name.clone(), ttl, rdata));
