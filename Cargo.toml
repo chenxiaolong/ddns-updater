@@ -11,25 +11,25 @@ edition = "2018"
 
 [dependencies]
 env_logger = "0.10.0"
-gethostname = "0.4.1"
-log = "0.4.17"
+gethostname = "0.4.3"
+log = "0.4.19"
 netif = "0.1.6"
 rand = "0.8.5"
-thiserror = "1.0.38"
-toml = "0.7.2"
+thiserror = "1.0.41"
+toml = "0.8.2"
 
 [dependencies.clap]
-version = "4.1.6"
+version = "4.3.10"
 features = ["derive"]
 
 [dependencies.serde]
-version = "1.0.152"
+version = "1.0.166"
 features = ["derive"]
 
 [dependencies.serde_with]
 version = "3.0.0"
 features = ["base64", "macros"]
 
-[dependencies.trust-dns-client]
-version = "0.22.0"
+[dependencies.hickory-client]
+version = "0.24.0"
 features = ["dnssec", "dnssec-ring"]

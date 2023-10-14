@@ -14,14 +14,16 @@ use {
     },
     clap::Parser,
     log::{debug, error, info, trace, warn},
-    trust_dns_client::{
+    hickory_client::{
         client::Client,
         error::ClientError,
         op::{ResponseCode, UpdateMessage},
-        proto::error::ProtoError,
-        rr::{
-            dnssec::tsig::TSigner,
-            DNSClass, Name, RecordType,
+        proto::{
+            error::ProtoError,
+            rr::{
+                dnssec::tsig::TSigner,
+                DNSClass, Name, RecordType,
+            },
         },
     },
     iface::Interfaces,

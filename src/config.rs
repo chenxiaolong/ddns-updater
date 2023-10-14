@@ -10,7 +10,7 @@ use {
         serde_as,
         DisplayFromStr,
     },
-    trust_dns_client::rr::{
+    hickory_client::rr::{
         rdata::tsig::TsigAlgorithm,
         Name,
     },
