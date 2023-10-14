@@ -1,49 +1,46 @@
-use {
-    std::{
-        future::Future,
-        net::{IpAddr, SocketAddr},
-        pin::Pin,
-        time::Duration,
+use hickory_client::{
+    client::{AsyncClient, Client, SyncClient},
+    error::ClientResult,
+    op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
+    proto::{
+        error::ProtoError,
+        rr::{dnssec::tsig::TSigner, DNSClass, Name, RData, Record, RecordType},
+        xfer::DnsExchangeSend,
     },
-    hickory_client::{
-        client::{AsyncClient, Client, SyncClient},
-        error::ClientResult,
-        op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
-        proto::{
-            error::ProtoError,
-            rr::{
-                dnssec::tsig::TSigner,
-                DNSClass, Name, RData, Record, RecordType,
-            },
-            xfer::DnsExchangeSend,
-        },
-        tcp::TcpClientConnection,
-        udp::UdpClientConnection,
-    },
-    crate::config::Protocol,
+    tcp::TcpClientConnection,
+    udp::UdpClientConnection,
 };
 
-/// `trust_dns_client::client::NewFutureObj` is not public
+use std::{
+    future::Future,
+    net::{IpAddr, SocketAddr},
+    pin::Pin,
+    time::Duration,
+};
+
+use crate::config::Protocol;
+
+/// `hickory_client::client::NewFutureObj` is not public
 type NewFutureObj<H> = Pin<
     Box<
         dyn Future<
-            Output = Result<
-                (
-                    H,
-                    Box<dyn Future<Output = Result<(), ProtoError>> + 'static + Send + Unpin>,
-                ),
-                ProtoError,
-            >,
-        >
-        + 'static
-        + Send,
+                Output = Result<
+                    (
+                        H,
+                        Box<dyn Future<Output = Result<(), ProtoError>> + 'static + Send + Unpin>,
+                    ),
+                    ProtoError,
+                >,
+            >
+            + 'static
+            + Send,
     >,
 >;
 
 /// Small wrapper to avoid callers needing to distinguish between TCP/UDP.
 pub enum DnsClient {
-    Tcp(SyncClient::<TcpClientConnection>),
-    Udp(SyncClient::<UdpClientConnection>),
+    Tcp(SyncClient<TcpClientConnection>),
+    Udp(SyncClient<UdpClientConnection>),
 }
 
 impl DnsClient {
@@ -87,9 +84,6 @@ pub fn replace_addrs_message(
     ttl: u32,
     addrs: &[IpAddr],
 ) -> Message {
-    // trust_dns_client::client::AsyncClient::MAX_PAYLOAD_LEN is not public
-    const MAX_PAYLOAD_LEN: u16 = 1232;
-
     let mut zone = Query::new();
     zone.set_name(zone_origin.clone())
         .set_query_class(DNSClass::IN)
@@ -121,7 +115,7 @@ pub fn replace_addrs_message(
     message
         .extensions_mut()
         .get_or_insert_with(Edns::new)
-        .set_max_payload(MAX_PAYLOAD_LEN)
+        .set_max_payload(hickory_client::proto::op::update_message::MAX_PAYLOAD_LEN)
         .set_version(0);
 
     message

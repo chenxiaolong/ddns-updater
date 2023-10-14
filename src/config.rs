@@ -1,20 +1,8 @@
-use {
-    std::{
-        fmt,
-        path::Path,
-        time::Duration,
-    },
-    serde::Deserialize,
-    serde_with::{
-        base64::Base64,
-        serde_as,
-        DisplayFromStr,
-    },
-    hickory_client::rr::{
-        rdata::tsig::TsigAlgorithm,
-        Name,
-    },
-};
+use std::{fmt, path::Path, time::Duration};
+
+use hickory_client::rr::{rdata::tsig::TsigAlgorithm, Name};
+use serde::Deserialize;
+use serde_with::{base64::Base64, serde_as, DisplayFromStr};
 
 const DEFAULT_TTL: u32 = 300;
 const DEFAULT_TIMEOUT: u64 = 5;

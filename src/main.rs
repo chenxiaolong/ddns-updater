@@ -3,32 +3,29 @@ mod dns;
 mod iface;
 mod ip;
 
-use {
-    std::{
-        borrow::Cow,
-        ffi::OsString,
-        net::{SocketAddr, ToSocketAddrs},
-        path::PathBuf,
-        str::FromStr,
-        sync::atomic::{AtomicBool, Ordering},
-    },
-    clap::Parser,
-    log::{debug, error, info, trace, warn},
-    hickory_client::{
-        client::Client,
-        error::ClientError,
-        op::{ResponseCode, UpdateMessage},
-        proto::{
-            error::ProtoError,
-            rr::{
-                dnssec::tsig::TSigner,
-                DNSClass, Name, RecordType,
-            },
-        },
-    },
-    iface::Interfaces,
-    crate::dns::DnsClient,
+use std::{
+    borrow::Cow,
+    ffi::OsString,
+    net::{SocketAddr, ToSocketAddrs},
+    path::PathBuf,
+    str::FromStr,
+    sync::atomic::{AtomicBool, Ordering},
 };
+
+use clap::Parser;
+use hickory_client::{
+    client::Client,
+    error::ClientError,
+    op::{ResponseCode, UpdateMessage},
+    proto::{
+        error::ProtoError,
+        rr::{dnssec::tsig::TSigner, DNSClass, Name, RecordType},
+    },
+};
+use iface::Interfaces;
+use log::{debug, error, info, trace, warn};
+
+use crate::dns::DnsClient;
 
 // Same as nsupdate
 const DEFAULT_FUDGE: u16 = 300;
@@ -72,52 +69,58 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
     let iface = match &config.global.interface {
         Some(s) => s.as_str(),
         None => {
-            debug!("Autodetecting interface from source IP of TCP connection to {}", server);
+            debug!("Autodetecting interface from source IP of TCP connection to {server}");
             ifaces.get_iface_by_tcp_source_ip(server)?
         }
     };
-    debug!("Interface: {:?}", iface);
+    debug!("Interface: {iface:?}");
 
-    let addrs = ifaces.get_addrs_by_name(iface)
+    let addrs = ifaces
+        .get_addrs_by_name(iface)
         .ok_or_else(|| Error::InterfaceNotFound(iface.to_string()))?;
-    let valid_addrs = addrs.into_iter()
+    let valid_addrs = addrs
+        .into_iter()
         .filter(|ip| ip::is_suitable_ip(*ip))
         .collect::<Vec<_>>();
-    debug!("Addresses: {:?}", valid_addrs);
+    debug!("Addresses: {valid_addrs:?}");
 
     let name = match &config.global.hostname {
         Some(n) => Cow::Borrowed(n),
         None => {
             let hostname = gethostname::gethostname();
-            let hostname_str = hostname.to_str()
+            let hostname_str = hostname
+                .to_str()
                 .ok_or_else(|| Error::InvalidHostnameUtf8(hostname.clone()))?;
             let name = Name::from_str(hostname_str)
                 .map_err(|e| Error::InvalidHostnameDns(hostname.clone(), e))?;
             Cow::Owned(name)
         }
     };
-    debug!("Hostname: {}", name);
+    debug!("Hostname: {name}");
 
     let tsig = TSigner::new(
         config.tsig.secret.clone(),
         config.tsig.algorithm.into(),
         name.clone().into_owned(),
         DEFAULT_FUDGE,
-    ).unwrap();
+    )
+    .unwrap();
 
     let client = DnsClient::new(
         server,
         config.global.protocol,
         config.global.timeout.to_duration(),
         tsig,
-    ).map_err(|e| Error::DnsClient(server, e))?;
+    )
+    .map_err(|e| Error::DnsClient(server, e))?;
 
     let zone = match &config.global.zone {
         Some(n) => Cow::Borrowed(n),
         None => {
-            debug!("Querying SOA for: {}", name);
+            debug!("Querying SOA for: {name}");
 
-            let response = client.query(&name, DNSClass::IN, RecordType::SOA)
+            let response = client
+                .query(&name, DNSClass::IN, RecordType::SOA)
                 .map_err(|e| Error::DnsClient(server, e))?;
             let authority = response.name_servers();
             if authority.is_empty() {
@@ -127,18 +130,13 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
             Cow::Owned(authority[0].name().clone())
         }
     };
-    debug!("Zone: {}", zone);
+    debug!("Zone: {zone}");
 
-    let request = dns::replace_addrs_message(
-        &zone,
-        &name,
-        config.global.ttl.0,
-        &valid_addrs,
-    );
-    trace!("Update request: {:?}", request);
+    let request = dns::replace_addrs_message(&zone, &name, config.global.ttl.0, &valid_addrs);
+    trace!("Update request: {request:?}");
 
     for record in request.updates() {
-        info!("Record update: {}", record);
+        info!("Record update: {record}");
     }
 
     let responses = client.send(request);
@@ -146,12 +144,12 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
 
     for response in responses {
         let r = response.map_err(|e| Error::DnsClient(server, e))?;
-        trace!("Update response: {:?}", r);
+        trace!("Update response: {r:?}");
 
         let code = r.response_code();
 
         if code != ResponseCode::NoError {
-            warn!("Received error response: {0:?} ({0})", code);
+            warn!("Received error response: {code:?} ({code})");
             errored = true;
         }
     }
@@ -165,38 +163,36 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
 
 fn main_wrapper() -> Result<()> {
     let opts: Opts = Opts::parse();
-    let config = config::load_config(&opts.config)
-        .map_err(|e| Error::Config(opts.config.clone(), e))?;
+    let config =
+        config::load_config(&opts.config).map_err(|e| Error::Config(opts.config.clone(), e))?;
 
-    env_logger::Builder::from_env(
-        env_logger::Env::default()
-            .default_filter_or(format!(
-                "{}={}",
-                env!("CARGO_PKG_NAME").replace('-', "_"),
-                config.global.log_level,
-            ))
-    )
-        .format_timestamp(None)
-        .init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(format!(
+        "{}={}",
+        env!("CARGO_PKG_NAME").replace('-', "_"),
+        config.global.log_level,
+    )))
+    .format_timestamp(None)
+    .init();
     LOGGING_INITIALIZED.store(true, Ordering::SeqCst);
 
-    trace!("Loaded config: {:?}", config);
+    trace!("Loaded config: {config:?}");
 
     let server_with_port = match &config.global.name_server {
         h if h.contains(':') => Cow::Borrowed(h.as_str()),
-        h => Cow::Owned(format!("{}:{}", h, config.global.protocol.default_port())),
+        h => Cow::Owned(format!("{h}:{}", config.global.protocol.default_port())),
     };
-    debug!("Name server: {:?}", server_with_port);
+    debug!("Name server: {server_with_port:?}");
 
-    let servers = server_with_port.to_socket_addrs()
+    let servers = server_with_port
+        .to_socket_addrs()
         .map_err(|e| Error::ResolveDnsHost(server_with_port.to_string(), e))?
         .collect::<Vec<_>>();
-    debug!("Resolved name servers: {:?}", servers);
+    debug!("Resolved name servers: {servers:?}");
 
     let mut last_error = None;
 
     for server in servers {
-        debug!("Attempting to use name server: {}", server);
+        debug!("Attempting to use name server: {server}");
 
         match update_dns(server, &config) {
             Ok(_) => break,
