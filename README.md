@@ -31,7 +31,7 @@ The resulting executable will be in `target/release/ddns-updater` or `target\rel
 
 If an issue occurs, the best way to troubleshoot is to set `log_level` to `debug` or `trace` in the config file. The `debug` level includes information like the detected IP addresses, while the `trace` level will also print out the raw DNS update request and response. Note that the `trace` output is not safe to paste online because it includes a dump of the TSIG key.
 
-To enable trace logging for everything, including the underlying trust-dns library, set the `RUST_LOG` environment variable to `trace`.
+To enable trace logging for everything, including the underlying hickory-dns library, set the `RUST_LOG` environment variable to `trace`.
 
 ## Limitations
 

@@ -1,10 +1,9 @@
-use {
-    std::{
-        io,
-        net::{IpAddr, SocketAddr, TcpStream},
-    },
-    netif::Interface,
+use std::{
+    io,
+    net::{IpAddr, SocketAddr, TcpStream},
 };
+
+use netif::Interface;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -24,19 +23,17 @@ pub struct Interfaces {
 
 impl Interfaces {
     pub fn new() -> Result<Self> {
-        let ifaces = netif::up()
-            .map_err(Error::QueryInterface)?
-            .collect();
+        let ifaces = netif::up().map_err(Error::QueryInterface)?.collect();
 
-        Ok(Self {
-            ifaces,
-        })
+        Ok(Self { ifaces })
     }
 
     pub fn get_addrs_by_name(&self, name: &str) -> Option<Vec<IpAddr>> {
         let mut found = false;
 
-        let addrs = self.ifaces.iter()
+        let addrs = self
+            .ifaces
+            .iter()
             .filter(|iface| iface.name() == name)
             .inspect(|_| found = true)
             .map(|iface| *iface.address())
@@ -52,7 +49,8 @@ impl Interfaces {
     pub fn get_iface_by_tcp_source_ip(&self, server: SocketAddr) -> Result<&str> {
         let source_ip = Self::get_tcp_source_ip(server)?;
 
-        self.ifaces.iter()
+        self.ifaces
+            .iter()
             .find(|iface| *iface.address() == source_ip)
             .map(Interface::name)
             .ok_or(Error::InterfaceNotFound(source_ip))
