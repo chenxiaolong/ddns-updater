@@ -5,7 +5,7 @@ ddns-updater is a simple RFC 2136 dynamic DNS updater.
 Features:
 * Supports TSIG with hmac-sha256/sha384/sha512
 * Automatically detects the correct interface based on the TCP source IP of a connection to the DNS server
-* Suuports DDNS updates over both TCP and UDP
+* Supports DDNS updates over both TCP and UDP
 
 ## Usage
 
