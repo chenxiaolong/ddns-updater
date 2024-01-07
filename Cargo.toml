@@ -10,13 +10,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-env_logger = "0.10.0"
 gethostname = "0.4.3"
-log = "0.4.19"
 netif = "0.1.6"
 rand = "0.8.5"
 thiserror = "1.0.41"
 toml = "0.8.2"
+tracing = "0.1.40"
 
 [dependencies.clap]
 version = "4.3.10"
@@ -33,3 +32,7 @@ features = ["base64", "macros"]
 [dependencies.hickory-client]
 version = "0.24.0"
 features = ["dnssec", "dnssec-ring"]
+
+[dependencies.tracing-subscriber]
+version = "0.3.18"
+features = ["env-filter"]

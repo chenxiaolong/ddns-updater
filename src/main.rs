@@ -6,6 +6,7 @@ mod ip;
 use std::{
     borrow::Cow,
     ffi::OsString,
+    io::{self, IsTerminal},
     net::{SocketAddr, ToSocketAddrs},
     path::PathBuf,
     str::FromStr,
@@ -23,7 +24,8 @@ use hickory_client::{
     },
 };
 use iface::Interfaces;
-use log::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn};
+use tracing_subscriber::{filter::Directive, EnvFilter};
 
 use crate::dns::DnsClient;
 
@@ -166,13 +168,25 @@ fn main_wrapper() -> Result<()> {
     let config =
         config::load_config(&opts.config).map_err(|e| Error::Config(opts.config.clone(), e))?;
 
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(format!(
+    let default_directive: Directive = format!(
         "{}={}",
         env!("CARGO_PKG_NAME").replace('-', "_"),
         config.global.log_level,
-    )))
-    .format_timestamp(None)
-    .init();
+    )
+    .parse()
+    .expect("Broken hardcoded directive");
+
+    let filter = EnvFilter::builder()
+        .with_default_directive(default_directive)
+        .from_env_lossy();
+
+    tracing_subscriber::fmt()
+        .with_writer(io::stderr)
+        .with_ansi(io::stderr().is_terminal())
+        .with_env_filter(filter)
+        .without_time()
+        .init();
+
     LOGGING_INITIALIZED.store(true, Ordering::SeqCst);
 
     trace!("Loaded config: {config:?}");
