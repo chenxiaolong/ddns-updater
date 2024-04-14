@@ -13,24 +13,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Get Rust LLVM target triple
+      - name: Get Rust target triple
         id: get_target
         shell: bash
         run: |
           echo -n 'name=' >> "${GITHUB_OUTPUT}"
-          RUSTC_BOOTSTRAP=1 rustc -Z unstable-options --print target-spec-json \
-              | jq -r '."llvm-target"' \
-              >> "${GITHUB_OUTPUT}"
-
-      - name: Install clippy
-        run: rustup component add clippy
+          rustc -vV | sed -n 's|host: ||p' >> "${GITHUB_OUTPUT}"
 
       - name: Run tests in debug mode
         env:
@@ -44,7 +42,7 @@ jobs:
         run: cargo build --verbose
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ddns-updater-${{ steps.get_target.outputs.name }}
           path: |

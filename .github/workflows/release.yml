@@ -7,8 +7,8 @@ on:
     tags:
       - 'v*'
 jobs:
-  create_release:
-    name: Create GitHub release
+  get_version:
+    name: Get version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
@@ -23,40 +23,32 @@ jobs:
           fi
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
-      - name: Create release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: Version ${{ steps.get_version.outputs.version }}
-
   build_and_upload:
     name: Build and upload assets
-    needs: create_release
+    needs: get_version
     runs-on: ${{ matrix.os }}
     env:
       CARGO_TERM_COLOR: always
+      RUSTFLAGS: -C strip=symbols
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Get Rust LLVM target triple
+      - name: Get Rust target triple
         id: get_target
         shell: bash
         run: |
           echo -n 'name=' >> "${GITHUB_OUTPUT}"
-          RUSTC_BOOTSTRAP=1 rustc -Z unstable-options --print target-spec-json \
-              | jq -r '."llvm-target"' \
-              >> "${GITHUB_OUTPUT}"
-
-      - name: Install clippy
-        run: rustup component add clippy
+          rustc -vV | sed -n 's|host: ||p' >> "${GITHUB_OUTPUT}"
 
       - name: Run tests in release mode
         env:
@@ -66,16 +58,13 @@ jobs:
           cargo test --workspace --release
 
       - name: Build in release mode
-        run: cargo build --release --verbose
-
-      - name: Strip release binary (non-Windows)
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
-        run: strip target/release/ddns-updater
+        run: cargo build --release
 
       - name: Build archive
+        id: build_archive
         shell: bash
         run: |
-          base_name=ddns-updater-${{ needs.create_release.outputs.version }}-${{ steps.get_target.outputs.name }}
+          base_name=ddns-updater-${{ needs.get_version.outputs.version }}-${{ steps.get_target.outputs.name }}
           mkdir "${base_name}"
           cp {README.md,LICENSE} "${base_name}/"
 
@@ -91,13 +80,15 @@ jobs:
 
           openssl sha512 -r "${asset}" | sed 's/\*/ /' > "${asset}.sha512"
 
-          echo "ASSET=${asset}" >> "${GITHUB_ENV}"
-          echo "ASSET_SHA512=${asset}.sha512" >> "${GITHUB_ENV}"
+          echo "name=${asset}" >> "${GITHUB_OUTPUT}"
+          echo "name_sha512=${asset}.sha512" >> "${GITHUB_OUTPUT}"
 
       - name: Upload release assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.create_release.outputs.version }}
+          tag_name: v${{ needs.get_version.outputs.version }}
+          name: Version ${{ needs.get_version.outputs.version }}
+          draft: true
           files: |
-            ${{ env.ASSET }}
-            ${{ env.ASSET_SHA512 }}
+            ${{ steps.build_archive.outputs.name }}
+            ${{ steps.build_archive.outputs.name_sha512 }}
