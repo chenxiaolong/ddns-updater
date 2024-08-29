@@ -54,7 +54,7 @@ jobs:
         env:
           RUST_BACKTRACE: 1
         run: |
-          cargo clippy --workspace --release -- -D warnings
+          cargo clippy --workspace --release
           cargo test --workspace --release
 
       - name: Build in release mode

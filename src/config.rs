@@ -128,6 +128,7 @@ impl From<Algorithm> for TsigAlgorithm {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Tsig {
+    #[allow(dead_code)]
     pub name: String,
     pub algorithm: Algorithm,
     #[serde_as(as = "Base64")]
