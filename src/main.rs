@@ -9,6 +9,7 @@ use std::{
     io::{self, IsTerminal},
     net::{SocketAddr, ToSocketAddrs},
     path::PathBuf,
+    process::ExitCode,
     str::FromStr,
     sync::atomic::{AtomicBool, Ordering},
 };
@@ -217,16 +218,16 @@ fn main_wrapper() -> Result<()> {
     last_error.map_or(Ok(()), Err)
 }
 
-fn main() {
+fn main() -> ExitCode {
     match main_wrapper() {
-        Ok(_) => {}
+        Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
             if LOGGING_INITIALIZED.load(Ordering::SeqCst) {
                 error!("{e}");
             } else {
                 eprintln!("{e}");
             }
-            std::process::exit(1);
+            ExitCode::FAILURE
         }
     }
 }
