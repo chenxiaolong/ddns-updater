@@ -1,6 +1,11 @@
 ### Unreleased
 
 * Update all dependencies ([PR #12], [PR #13], [PR #14], [PR #15])
+* Switch project layout to match my other projects ([PR #16])
+    * Sign all prebuilt binaries
+    * Use fat executables for macOS (x86_64 + aarch64)
+    * Add Android aarch64 builds
+    * Put changelog in `CHANGELOG.md` instead of Github Release metadata
 
 ### Version 0.1.10
 
@@ -89,3 +94,4 @@ Initial release
 [PR #13]: https://github.com/chenxiaolong/ddns-updater/pull/13
 [PR #14]: https://github.com/chenxiaolong/ddns-updater/pull/14
 [PR #15]: https://github.com/chenxiaolong/ddns-updater/pull/15
+[PR #16]: https://github.com/chenxiaolong/ddns-updater/pull/16
