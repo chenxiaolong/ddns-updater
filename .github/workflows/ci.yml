@@ -117,5 +117,5 @@ jobs:
         with:
           name: ddns-updater-${{ steps.get_version.outputs.version }}-${{ matrix.artifact.name }}
           path: |
-            target/release/ddns-updater
-            target/release/ddns-updater.exe
+            target/output/ddns-updater
+            target/output/ddns-updater.exe
