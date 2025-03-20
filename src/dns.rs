@@ -1,76 +1,85 @@
+use futures_util::stream::{Stream, StreamExt};
 use hickory_client::{
-    client::{AsyncClient, Client, SyncClient},
-    error::ClientResult,
-    op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
+    client::Client,
     proto::{
-        error::ProtoError,
-        rr::{dnssec::tsig::TSigner, DNSClass, Name, RData, Record, RecordType},
-        xfer::DnsExchangeSend,
+        dnssec::tsig::TSigner,
+        op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
+        rr::{DNSClass, Name, RData, Record, RecordType},
+        runtime::TokioRuntimeProvider,
+        tcp::TcpClientStream,
+        udp::UdpClientStream,
+        xfer::{DnsHandle, DnsResponse},
+        ProtoError, ProtoErrorKind,
     },
-    tcp::TcpClientConnection,
-    udp::UdpClientConnection,
+    ClientError,
 };
 
 use std::{
     future::Future,
     net::{IpAddr, SocketAddr},
     pin::Pin,
+    sync::Arc,
+    task::{ready, Context, Poll},
     time::Duration,
 };
 
 use crate::config::Protocol;
 
-/// `hickory_client::client::NewFutureObj` is not public
-type NewFutureObj<H> = Pin<
-    Box<
-        dyn Future<
-                Output = Result<
-                    (
-                        H,
-                        Box<dyn Future<Output = Result<(), ProtoError>> + 'static + Send + Unpin>,
-                    ),
-                    ProtoError,
-                >,
-            >
-            + 'static
-            + Send,
-    >,
->;
+/// Copied from unexported hickory_client::client::client::ClientResponse.
+#[must_use = "futures do nothing unless polled"]
+pub struct ClientResponse<R>(pub(crate) R)
+where
+    R: Stream<Item = Result<DnsResponse, ProtoError>> + Send + Unpin + 'static;
 
-/// Small wrapper to avoid callers needing to distinguish between TCP/UDP.
-pub enum DnsClient {
-    Tcp(SyncClient<TcpClientConnection>),
-    Udp(SyncClient<UdpClientConnection>),
-}
+impl<R> Future for ClientResponse<R>
+where
+    R: Stream<Item = Result<DnsResponse, ProtoError>> + Send + Unpin + 'static,
+{
+    type Output = Result<DnsResponse, ClientError>;
 
-impl DnsClient {
-    pub fn new(
-        server: SocketAddr,
-        protocol: Protocol,
-        timeout: Duration,
-        signer: TSigner,
-    ) -> ClientResult<Self> {
-        match protocol {
-            Protocol::Tcp => {
-                let client = TcpClientConnection::with_timeout(server, timeout)?;
-                Ok(Self::Tcp(SyncClient::with_tsigner(client, signer)))
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Poll::Ready(
+            match ready!(self.0.poll_next_unpin(cx)) {
+                Some(r) => r,
+                None => Err(ProtoError::from(ProtoErrorKind::Timeout)),
             }
-            Protocol::Udp => {
-                let client = UdpClientConnection::with_timeout(server, timeout)?;
-                Ok(Self::Udp(SyncClient::with_tsigner(client, signer)))
-            }
-        }
+            .map_err(ClientError::from),
+        )
     }
 }
 
-impl Client for DnsClient {
-    type Response = DnsExchangeSend;
-    type Handle = AsyncClient;
+/// Create a new TCP or UDP client and spawn the background task for performing
+/// I/O operations.
+pub async fn new_client(
+    server: SocketAddr,
+    protocol: Protocol,
+    timeout: Duration,
+    signer: TSigner,
+) -> Result<Client, ProtoError> {
+    let provider = TokioRuntimeProvider::default();
+    let signer = Arc::new(signer);
 
-    fn new_future(&self) -> NewFutureObj<Self::Handle> {
-        match self {
-            Self::Tcp(c) => c.new_future(),
-            Self::Udp(c) => c.new_future(),
+    match protocol {
+        Protocol::Tcp => {
+            let (stream, sender) = TcpClientStream::new(server, None, Some(timeout), provider);
+
+            let (client, bg) = Client::with_timeout(stream, sender, timeout, Some(signer)).await?;
+
+            tokio::spawn(bg);
+
+            Ok(client)
+        }
+        Protocol::Udp => {
+            let stream = UdpClientStream::builder(server, provider)
+                .with_timeout(Some(timeout))
+                .with_signer(Some(signer))
+                .build();
+
+            let (client, bg) = Client::connect(stream).await?;
+
+            tokio::spawn(bg);
+
+            Ok(client)
         }
     }
 }
@@ -98,7 +107,7 @@ pub fn replace_addrs_message(
     message.add_zone(zone);
 
     for rtype in [RecordType::A, RecordType::AAAA] {
-        let mut record = Record::with(name.clone(), rtype, 0);
+        let mut record = Record::update0(name.clone(), 0, rtype);
         record.set_dns_class(DNSClass::ANY);
         message.add_update(record);
     }
@@ -119,4 +128,11 @@ pub fn replace_addrs_message(
         .set_version(0);
 
     message
+}
+
+pub fn send_message(
+    client: &Client,
+    message: Message,
+) -> ClientResponse<<Client as DnsHandle>::Response> {
+    ClientResponse(client.send(message))
 }

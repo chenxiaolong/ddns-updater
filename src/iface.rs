@@ -1,9 +1,10 @@
 use std::{
     io,
-    net::{IpAddr, SocketAddr, TcpStream},
+    net::{IpAddr, SocketAddr},
 };
 
 use netif::Interface;
+use tokio::net::TcpStream;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -46,8 +47,8 @@ impl Interfaces {
         }
     }
 
-    pub fn get_iface_by_tcp_source_ip(&self, server: SocketAddr) -> Result<&str> {
-        let source_ip = Self::get_tcp_source_ip(server)?;
+    pub async fn get_iface_by_tcp_source_ip(&self, server: SocketAddr) -> Result<&str> {
+        let source_ip = Self::get_tcp_source_ip(server).await?;
 
         self.ifaces
             .iter()
@@ -56,8 +57,9 @@ impl Interfaces {
             .ok_or(Error::InterfaceNotFound(source_ip))
     }
 
-    fn get_tcp_source_ip(server: SocketAddr) -> Result<IpAddr> {
+    async fn get_tcp_source_ip(server: SocketAddr) -> Result<IpAddr> {
         let socket_addr = TcpStream::connect(server)
+            .await
             .and_then(|s| s.local_addr())
             .map_err(|e| Error::Connection(server, e))?;
         let ip_addr = match socket_addr {

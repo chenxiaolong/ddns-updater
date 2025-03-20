@@ -10,29 +10,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gethostname = "0.5.0"
+anyhow = "1.0.97"
+clap = { version = "4.3.10", features = ["derive"] }
+futures-util = "0.3.31"
+gethostname = "1.0.0"
+hickory-client = { version = "0.25.1", features = ["dnssec-ring"] }
 netif = "0.1.6"
-rand = "0.8.5"
-thiserror = "1.0.41"
+rand = "0.9.0"
+serde = { version = "1.0.166", features = ["derive"] }
+serde_with = { version = "3.0.0", features = ["base64", "macros"] }
+thiserror = "2.0.11"
+tokio = "1.44.1"
 toml = "0.8.2"
 tracing = "0.1.40"
-
-[dependencies.clap]
-version = "4.3.10"
-features = ["derive"]
-
-[dependencies.serde]
-version = "1.0.166"
-features = ["derive"]
-
-[dependencies.serde_with]
-version = "3.0.0"
-features = ["base64", "macros"]
-
-[dependencies.hickory-client]
-version = "0.24.0"
-features = ["dnssec", "dnssec-ring"]
-
-[dependencies.tracing-subscriber]
-version = "0.3.18"
-features = ["env-filter"]
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

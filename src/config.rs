@@ -1,18 +1,19 @@
 use std::{fmt, path::Path, time::Duration};
 
-use hickory_client::rr::{rdata::tsig::TsigAlgorithm, Name};
+use hickory_client::proto::{dnssec::rdata::tsig::TsigAlgorithm, rr::domain::Name};
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, DisplayFromStr};
+use thiserror::Error;
 
 const DEFAULT_TTL: u32 = 300;
 const DEFAULT_TIMEOUT: u64 = 5;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Error)]
 pub enum Error {
     #[error("I/O error: {0}")]
-    IoError(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
     #[error("Could not parse TOML: {0}")]
-    TomlError(#[from] toml::de::Error),
+    Toml(#[from] toml::de::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

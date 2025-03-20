@@ -7,7 +7,7 @@ use std::{
     borrow::Cow,
     ffi::OsString,
     io::{self, IsTerminal},
-    net::{SocketAddr, ToSocketAddrs},
+    net::SocketAddr,
     path::PathBuf,
     process::ExitCode,
     str::FromStr,
@@ -16,19 +16,18 @@ use std::{
 
 use clap::Parser;
 use hickory_client::{
-    client::Client,
-    error::ClientError,
-    op::{ResponseCode, UpdateMessage},
+    client::ClientHandle,
     proto::{
-        error::ProtoError,
-        rr::{dnssec::tsig::TSigner, DNSClass, Name, RecordType},
+        dnssec::tsig::TSigner,
+        op::{response_code::ResponseCode, update_message::UpdateMessage},
+        rr::{DNSClass, Name, RecordType},
+        ProtoError,
     },
+    ClientError,
 };
 use iface::Interfaces;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, trace};
 use tracing_subscriber::{filter::Directive, EnvFilter};
-
-use crate::dns::DnsClient;
 
 // Same as nsupdate
 const DEFAULT_FUDGE: u16 = 300;
@@ -37,24 +36,26 @@ static LOGGING_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
-    #[error("Could not load config: {0:?}: {1}")]
-    Config(PathBuf, config::Error),
-    #[error("Could not resolve DNS host: {0}: {1}")]
-    ResolveDnsHost(String, std::io::Error),
-    #[error("Error when querying interfaces: {0}")]
+    #[error("Could not load config: {0:?}")]
+    Config(PathBuf, #[source] config::Error),
+    #[error("Could not resolve DNS host: {0}")]
+    ResolveDnsHost(String, #[source] io::Error),
+    #[error("Error when querying interfaces")]
     Interface(#[from] iface::Error),
     #[error("Interface not found: {0}")]
     InterfaceNotFound(String),
     #[error("Hostname has invalid UTF-8: {0:?}")]
     InvalidHostnameUtf8(OsString),
-    #[error("Hostname is not a valid DNS name: {0:?}: {1}")]
-    InvalidHostnameDns(OsString, ProtoError),
-    #[error("Error when querying DNS server: {0}: {1}")]
-    DnsClient(SocketAddr, ClientError),
+    #[error("Hostname is not a valid DNS name: {0:?}")]
+    InvalidHostnameDns(OsString, #[source] ProtoError),
+    #[error("Error when creating DNS client for: {0}")]
+    ClientCreate(SocketAddr, #[source] ProtoError),
+    #[error("Error when querying DNS server: {0}")]
+    ClientQuery(SocketAddr, #[source] ClientError),
     #[error("Authoritative zone not found: {0}")]
     AuthoritativeZoneNotFound(Name),
-    #[error("Failed due to server's error response")]
-    ServerResponse,
+    #[error("Bad server response: {0}")]
+    BadResponse(ResponseCode),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -67,13 +68,13 @@ struct Opts {
     config: PathBuf,
 }
 
-fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
+async fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
     let ifaces = Interfaces::new()?;
     let iface = match &config.global.interface {
         Some(s) => s.as_str(),
         None => {
             debug!("Autodetecting interface from source IP of TCP connection to {server}");
-            ifaces.get_iface_by_tcp_source_ip(server)?
+            ifaces.get_iface_by_tcp_source_ip(server).await?
         }
     };
     debug!("Interface: {iface:?}");
@@ -109,13 +110,14 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
     )
     .unwrap();
 
-    let client = DnsClient::new(
+    let mut client = dns::new_client(
         server,
         config.global.protocol,
         config.global.timeout.to_duration(),
         tsig,
     )
-    .map_err(|e| Error::DnsClient(server, e))?;
+    .await
+    .map_err(|e| Error::ClientCreate(server, e))?;
 
     let zone = match &config.global.zone {
         Some(n) => Cow::Borrowed(n),
@@ -123,8 +125,9 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
             debug!("Querying SOA for: {name}");
 
             let response = client
-                .query(&name, DNSClass::IN, RecordType::SOA)
-                .map_err(|e| Error::DnsClient(server, e))?;
+                .query(name.clone().into_owned(), DNSClass::IN, RecordType::SOA)
+                .await
+                .map_err(|e| Error::ClientQuery(server, e))?;
             let authority = response.name_servers();
             if authority.is_empty() {
                 return Err(Error::AuthoritativeZoneNotFound(name.into_owned()));
@@ -142,29 +145,20 @@ fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
         info!("Record update: {record}");
     }
 
-    let responses = client.send(request);
-    let mut errored = false;
+    let response = dns::send_message(&client, request)
+        .await
+        .map_err(|e| Error::ClientQuery(server, e))?;
+    trace!("Update response: {response:?}");
 
-    for response in responses {
-        let r = response.map_err(|e| Error::DnsClient(server, e))?;
-        trace!("Update response: {r:?}");
-
-        let code = r.response_code();
-
-        if code != ResponseCode::NoError {
-            warn!("Received error response: {code:?} ({code})");
-            errored = true;
-        }
+    let code = response.response_code();
+    if code != ResponseCode::NoError {
+        return Err(Error::BadResponse(code));
     }
 
-    if errored {
-        Err(Error::ServerResponse)
-    } else {
-        Ok(())
-    }
+    Ok(())
 }
 
-fn main_wrapper() -> Result<()> {
+async fn main_wrapper() -> Result<()> {
     let opts: Opts = Opts::parse();
     let config =
         config::load_config(&opts.config).map_err(|e| Error::Config(opts.config.clone(), e))?;
@@ -198,8 +192,8 @@ fn main_wrapper() -> Result<()> {
     };
     debug!("Name server: {server_with_port:?}");
 
-    let servers = server_with_port
-        .to_socket_addrs()
+    let servers = tokio::net::lookup_host(server_with_port.as_ref())
+        .await
         .map_err(|e| Error::ResolveDnsHost(server_with_port.to_string(), e))?
         .collect::<Vec<_>>();
     debug!("Resolved name servers: {servers:?}");
@@ -209,7 +203,7 @@ fn main_wrapper() -> Result<()> {
     for server in servers {
         debug!("Attempting to use name server: {server}");
 
-        match update_dns(server, &config) {
+        match update_dns(server, &config).await {
             Ok(_) => break,
             Err(e) => last_error = Some(e),
         }
@@ -218,14 +212,15 @@ fn main_wrapper() -> Result<()> {
     last_error.map_or(Ok(()), Err)
 }
 
-fn main() -> ExitCode {
-    match main_wrapper() {
+#[tokio::main]
+async fn main() -> ExitCode {
+    match main_wrapper().await {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
             if LOGGING_INITIALIZED.load(Ordering::SeqCst) {
-                error!("{e}");
+                error!("{:?}", anyhow::Error::from(e));
             } else {
-                eprintln!("{e}");
+                eprintln!("{:?}", anyhow::Error::from(e));
             }
             ExitCode::FAILURE
         }
