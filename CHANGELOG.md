@@ -1,4 +1,4 @@
-### Unreleased
+### Version 0.1.11
 
 * Update all dependencies ([PR #12], [PR #13], [PR #14], [PR #15])
 * Switch project layout to match my other projects ([PR #16])
