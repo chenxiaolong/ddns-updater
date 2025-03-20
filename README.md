@@ -40,9 +40,13 @@ To enable trace logging for everything, including the underlying hickory-dns lib
 * Querying the "public" IP from online services will never be supported.
 * Dynamic updates are made atomically by clearing all existing A/AAAA records and inserting the new records in the same request. However, some servers may not conform perfectly to RFC 2136 and may not implement the atomicity guarantees.
 
+## Verifying digital signatures
+
+To verify the digital signatures of the downloads, follow [the steps here](https://github.com/chenxiaolong/chenxiaolong/blob/master/VERIFY_SSH_SIGNATURES.md).
+
 ## License
 
-ddns-updater is licensed under the GPLv3 license. For details, please see [`LICENSE`](./LICENSE).
+ddns-updater is licensed under GPLv3. Please see [`LICENSE`](./LICENSE) for the full license text.
 
 ## Similar software
 
