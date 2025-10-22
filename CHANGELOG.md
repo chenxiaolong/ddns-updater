@@ -1,3 +1,8 @@
+### Version 0.1.12
+
+* Update all dependencies ([PR #18])
+* Use musl for prebuilt x86_64 Linux binary ([PR #18])
+
 ### Version 0.1.11
 
 * Update all dependencies ([PR #12], [PR #13], [PR #14], [PR #15])
@@ -95,3 +100,4 @@ Initial release
 [PR #14]: https://github.com/chenxiaolong/ddns-updater/pull/14
 [PR #15]: https://github.com/chenxiaolong/ddns-updater/pull/15
 [PR #16]: https://github.com/chenxiaolong/ddns-updater/pull/16
+[PR #18]: https://github.com/chenxiaolong/ddns-updater/pull/18
