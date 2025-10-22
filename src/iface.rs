@@ -40,11 +40,7 @@ impl Interfaces {
             .map(|iface| *iface.address())
             .collect();
 
-        if found {
-            Some(addrs)
-        } else {
-            None
-        }
+        if found { Some(addrs) } else { None }
     }
 
     pub async fn get_iface_by_tcp_source_ip(&self, server: SocketAddr) -> Result<&str> {

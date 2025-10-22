@@ -5,7 +5,7 @@ repository = "https://github.com/chenxiaolong/ddns-updater"
 readme = "README.md"
 license = "GPL-3.0"
 version = "0.1.11"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -21,6 +21,6 @@ serde = { version = "1.0.166", features = ["derive"] }
 serde_with = { version = "3.0.0", features = ["base64", "macros"] }
 thiserror = "2.0.11"
 tokio = "1.44.1"
-toml = "0.8.2"
+toml = "0.9.8"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

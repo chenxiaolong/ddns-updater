@@ -2,7 +2,7 @@ use std::{fmt, path::Path, time::Duration};
 
 use hickory_client::proto::{dnssec::rdata::tsig::TsigAlgorithm, rr::domain::Name};
 use serde::Deserialize;
-use serde_with::{base64::Base64, serde_as, DisplayFromStr};
+use serde_with::{DisplayFromStr, base64::Base64, serde_as};
 use thiserror::Error;
 
 const DEFAULT_TTL: u32 = 300;

@@ -16,18 +16,18 @@ use std::{
 
 use clap::Parser;
 use hickory_client::{
+    ClientError,
     client::ClientHandle,
     proto::{
+        ProtoError,
         dnssec::tsig::TSigner,
         op::{response_code::ResponseCode, update_message::UpdateMessage},
         rr::{DNSClass, Name, RecordType},
-        ProtoError,
     },
-    ClientError,
 };
 use iface::Interfaces;
 use tracing::{debug, error, info, trace};
-use tracing_subscriber::{filter::Directive, EnvFilter};
+use tracing_subscriber::{EnvFilter, filter::Directive};
 
 // Same as nsupdate
 const DEFAULT_FUDGE: u16 = 300;

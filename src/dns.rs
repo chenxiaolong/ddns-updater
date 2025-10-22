@@ -1,7 +1,9 @@
 use futures_util::stream::{Stream, StreamExt};
 use hickory_client::{
+    ClientError,
     client::Client,
     proto::{
+        ProtoError, ProtoErrorKind,
         dnssec::tsig::TSigner,
         op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
         rr::{DNSClass, Name, RData, Record, RecordType},
@@ -9,9 +11,7 @@ use hickory_client::{
         tcp::TcpClientStream,
         udp::UdpClientStream,
         xfer::{DnsHandle, DnsResponse},
-        ProtoError, ProtoErrorKind,
     },
-    ClientError,
 };
 
 use std::{
@@ -19,7 +19,7 @@ use std::{
     net::{IpAddr, SocketAddr},
     pin::Pin,
     sync::Arc,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
     time::Duration,
 };
 
