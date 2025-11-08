@@ -1,3 +1,7 @@
+### Unreleased
+
+* Add prebuilt binaries for aarch64 GNU/Linux and Windows ([PR #19])
+
 ### Version 0.1.12
 
 * Update all dependencies ([PR #18])
@@ -101,3 +105,4 @@ Initial release
 [PR #15]: https://github.com/chenxiaolong/ddns-updater/pull/15
 [PR #16]: https://github.com/chenxiaolong/ddns-updater/pull/16
 [PR #18]: https://github.com/chenxiaolong/ddns-updater/pull/18
+[PR #19]: https://github.com/chenxiaolong/ddns-updater/pull/19
