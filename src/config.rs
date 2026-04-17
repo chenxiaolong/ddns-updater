@@ -1,6 +1,6 @@
 use std::{fmt, path::Path, time::Duration};
 
-use hickory_client::proto::{dnssec::rdata::tsig::TsigAlgorithm, rr::domain::Name};
+use hickory_net::proto::rr::{domain::Name, rdata::tsig::TsigAlgorithm};
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, base64::Base64, serde_as};
 use thiserror::Error;
@@ -42,10 +42,11 @@ impl Default for Timeout {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Protocol {
     Tcp,
+    #[default]
     Udp,
 }
 
@@ -55,24 +56,13 @@ impl Protocol {
     }
 }
 
-impl Default for Protocol {
-    fn default() -> Self {
-        Self::Udp
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LogLevel {
+    #[default]
     Info,
     Debug,
     Trace,
-}
-
-impl Default for LogLevel {
-    fn default() -> Self {
-        Self::Info
-    }
 }
 
 impl fmt::Display for LogLevel {

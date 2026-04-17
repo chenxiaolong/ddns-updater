@@ -15,14 +15,13 @@ use std::{
 };
 
 use clap::Parser;
-use hickory_client::{
-    ClientError,
+use hickory_net::{
+    NetError,
     client::ClientHandle,
     proto::{
         ProtoError,
-        dnssec::tsig::TSigner,
-        op::{response_code::ResponseCode, update_message::UpdateMessage},
-        rr::{DNSClass, Name, RecordType},
+        op::{ResponseCode, update_message::UpdateMessage},
+        rr::{DNSClass, Name, RecordType, TSigner},
     },
 };
 use iface::Interfaces;
@@ -49,9 +48,9 @@ enum Error {
     #[error("Hostname is not a valid DNS name: {0:?}")]
     InvalidHostnameDns(OsString, #[source] ProtoError),
     #[error("Error when creating DNS client for: {0}")]
-    ClientCreate(SocketAddr, #[source] ProtoError),
+    ClientCreate(SocketAddr, #[source] NetError),
     #[error("Error when querying DNS server: {0}")]
-    ClientQuery(SocketAddr, #[source] ClientError),
+    ClientQuery(SocketAddr, #[source] NetError),
     #[error("Authoritative zone not found: {0}")]
     AuthoritativeZoneNotFound(Name),
     #[error("Bad server response: {0}")]
@@ -124,16 +123,16 @@ async fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
         None => {
             debug!("Querying SOA for: {name}");
 
-            let response = client
+            let mut response = client
                 .query(name.clone().into_owned(), DNSClass::IN, RecordType::SOA)
                 .await
                 .map_err(|e| Error::ClientQuery(server, e))?;
-            let authority = response.name_servers();
-            if authority.is_empty() {
+            response.authorities.reverse();
+            let Some(authority) = response.authorities.pop() else {
                 return Err(Error::AuthoritativeZoneNotFound(name.into_owned()));
-            }
+            };
 
-            Cow::Owned(authority[0].name().clone())
+            Cow::Owned(authority.name)
         }
     };
     debug!("Zone: {zone}");
@@ -150,9 +149,8 @@ async fn update_dns(server: SocketAddr, config: &config::Config) -> Result<()> {
         .map_err(|e| Error::ClientQuery(server, e))?;
     trace!("Update response: {response:?}");
 
-    let code = response.response_code();
-    if code != ResponseCode::NoError {
-        return Err(Error::BadResponse(code));
+    if response.response_code != ResponseCode::NoError {
+        return Err(Error::BadResponse(response.response_code));
     }
 
     Ok(())

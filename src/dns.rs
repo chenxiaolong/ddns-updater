@@ -1,50 +1,47 @@
 use futures_util::stream::{Stream, StreamExt};
-use hickory_client::{
-    ClientError,
+use hickory_net::{
+    NetError,
     client::Client,
     proto::{
-        ProtoError, ProtoErrorKind,
-        dnssec::tsig::TSigner,
-        op::{Edns, Message, MessageType, OpCode, Query, UpdateMessage},
-        rr::{DNSClass, Name, RData, Record, RecordType},
-        runtime::TokioRuntimeProvider,
-        tcp::TcpClientStream,
-        udp::UdpClientStream,
-        xfer::{DnsHandle, DnsResponse},
+        op::{
+            DEFAULT_MAX_PAYLOAD_LEN, DnsRequest, DnsResponse, Edns, Message, OpCode, Query,
+            UpdateMessage,
+        },
+        rr::{DNSClass, Name, RData, Record, RecordType, TSigner},
     },
+    runtime::TokioRuntimeProvider,
+    tcp::TcpClientStream,
+    udp::UdpClientStream,
+    xfer::{DnsHandle, DnsMultiplexer},
 };
 
 use std::{
     future::Future,
     net::{IpAddr, SocketAddr},
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll, ready},
     time::Duration,
 };
 
 use crate::config::Protocol;
 
-/// Copied from unexported hickory_client::client::client::ClientResponse.
+/// Copied from unexported hickory_net::client::ClientResponse.
 #[must_use = "futures do nothing unless polled"]
 pub struct ClientResponse<R>(pub(crate) R)
 where
-    R: Stream<Item = Result<DnsResponse, ProtoError>> + Send + Unpin + 'static;
+    R: Stream<Item = Result<DnsResponse, NetError>> + Send + Unpin + 'static;
 
 impl<R> Future for ClientResponse<R>
 where
-    R: Stream<Item = Result<DnsResponse, ProtoError>> + Send + Unpin + 'static,
+    R: Stream<Item = Result<DnsResponse, NetError>> + Send + Unpin + 'static,
 {
-    type Output = Result<DnsResponse, ClientError>;
+    type Output = Result<DnsResponse, NetError>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Poll::Ready(
-            match ready!(self.0.poll_next_unpin(cx)) {
-                Some(r) => r,
-                None => Err(ProtoError::from(ProtoErrorKind::Timeout)),
-            }
-            .map_err(ClientError::from),
-        )
+        Poll::Ready(match ready!(self.0.poll_next_unpin(cx)) {
+            Some(r) => r,
+            None => Err(NetError::Timeout),
+        })
     }
 }
 
@@ -55,15 +52,18 @@ pub async fn new_client(
     protocol: Protocol,
     timeout: Duration,
     signer: TSigner,
-) -> Result<Client, ProtoError> {
+) -> Result<Client<TokioRuntimeProvider>, NetError> {
     let provider = TokioRuntimeProvider::default();
-    let signer = Arc::new(signer);
 
     match protocol {
         Protocol::Tcp => {
             let (stream, sender) = TcpClientStream::new(server, None, Some(timeout), provider);
+            let stream = stream.await?;
+            let multiplexer = DnsMultiplexer::new(stream, sender)
+                .with_timeout(timeout)
+                .with_signer(signer);
 
-            let (client, bg) = Client::with_timeout(stream, sender, timeout, Some(signer)).await?;
+            let (client, bg) = Client::from_sender(multiplexer);
 
             tokio::spawn(bg);
 
@@ -75,7 +75,7 @@ pub async fn new_client(
                 .with_signer(Some(signer))
                 .build();
 
-            let (client, bg) = Client::connect(stream).await?;
+            let (client, bg) = Client::from_sender(stream);
 
             tokio::spawn(bg);
 
@@ -98,17 +98,14 @@ pub fn replace_addrs_message(
         .set_query_class(DNSClass::IN)
         .set_query_type(RecordType::SOA);
 
-    let mut message = Message::new();
-    message
-        .set_id(rand::random())
-        .set_message_type(MessageType::Query)
-        .set_op_code(OpCode::Update)
-        .set_recursion_desired(false);
+    let mut message = Message::query();
+    message.metadata.op_code = OpCode::Update;
+    message.metadata.recursion_desired = false;
     message.add_zone(zone);
 
     for rtype in [RecordType::A, RecordType::AAAA] {
         let mut record = Record::update0(name.clone(), 0, rtype);
-        record.set_dns_class(DNSClass::ANY);
+        record.dns_class = DNSClass::ANY;
         message.add_update(record);
     }
 
@@ -122,17 +119,17 @@ pub fn replace_addrs_message(
     }
 
     message
-        .extensions_mut()
+        .edns
         .get_or_insert_with(Edns::new)
-        .set_max_payload(hickory_client::proto::op::update_message::MAX_PAYLOAD_LEN)
+        .set_max_payload(DEFAULT_MAX_PAYLOAD_LEN)
         .set_version(0);
 
     message
 }
 
 pub fn send_message(
-    client: &Client,
+    client: &Client<TokioRuntimeProvider>,
     message: Message,
-) -> ClientResponse<<Client as DnsHandle>::Response> {
-    ClientResponse(client.send(message))
+) -> ClientResponse<<Client<TokioRuntimeProvider> as DnsHandle>::Response> {
+    ClientResponse(client.send(DnsRequest::from(message)))
 }
