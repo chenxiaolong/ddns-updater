@@ -1,3 +1,7 @@
+### Unreleased
+
+* Port to new hickory-net 0.26.0 crate ([PR #20])
+
 ### Version 0.1.13
 
 * Add prebuilt binaries for aarch64 GNU/Linux and Windows ([PR #19])
@@ -106,3 +110,4 @@ Initial release
 [PR #16]: https://github.com/chenxiaolong/ddns-updater/pull/16
 [PR #18]: https://github.com/chenxiaolong/ddns-updater/pull/18
 [PR #19]: https://github.com/chenxiaolong/ddns-updater/pull/19
+[PR #20]: https://github.com/chenxiaolong/ddns-updater/pull/20
