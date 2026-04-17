@@ -1,4 +1,4 @@
-### Unreleased
+### Version 0.1.14
 
 * Port to new hickory-net 0.26.0 crate ([PR #20])
 
