@@ -46,7 +46,7 @@ To verify the digital signatures of the downloads, follow [the steps here](https
 
 ## License
 
-ddns-updater is licensed under GPLv3. Please see [`LICENSE`](./LICENSE) for the full license text.
+ddns-updater is licensed under GPL-3.0-only. Please see [`LICENSE`](./LICENSE) for the full license text.
 
 ## Similar software
 

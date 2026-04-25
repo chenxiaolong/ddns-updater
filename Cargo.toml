@@ -3,7 +3,7 @@ name = "ddns-updater"
 description = "A simple RFC 2136 dynamic DNS updater"
 repository = "https://github.com/chenxiaolong/ddns-updater"
 readme = "README.md"
-license = "GPL-3.0"
+license = "GPL-3.0-only"
 version = "0.1.14"
 edition = "2024"
 
