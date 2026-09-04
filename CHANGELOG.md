@@ -1,4 +1,4 @@
-### Unreleased
+### Version 0.1.15
 
 * Update dependencies ([PR #21])
 
