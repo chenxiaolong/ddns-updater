@@ -1,3 +1,7 @@
+### Unreleased
+
+* Update dependencies ([PR #21])
+
 ### Version 0.1.14
 
 * Port to new hickory-net 0.26.0 crate ([PR #20])
@@ -111,3 +115,4 @@ Initial release
 [PR #18]: https://github.com/chenxiaolong/ddns-updater/pull/18
 [PR #19]: https://github.com/chenxiaolong/ddns-updater/pull/19
 [PR #20]: https://github.com/chenxiaolong/ddns-updater/pull/20
+[PR #21]: https://github.com/chenxiaolong/ddns-updater/pull/21
