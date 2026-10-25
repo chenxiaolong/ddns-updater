@@ -1,3 +1,7 @@
+### Unreleased
+
+* Update dependencies ([PR #22])
+
 ### Version 0.1.15
 
 * Update dependencies ([PR #21])
@@ -116,3 +120,4 @@ Initial release
 [PR #19]: https://github.com/chenxiaolong/ddns-updater/pull/19
 [PR #20]: https://github.com/chenxiaolong/ddns-updater/pull/20
 [PR #21]: https://github.com/chenxiaolong/ddns-updater/pull/21
+[PR #22]: https://github.com/chenxiaolong/ddns-updater/pull/22
