@@ -14,7 +14,6 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use clap::Parser;
 use hickory_net::{
     NetError,
     client::ClientHandle,
@@ -27,6 +26,7 @@ use hickory_net::{
 use iface::Interfaces;
 use tracing::{debug, error, info, trace};
 use tracing_subscriber::{EnvFilter, filter::Directive};
+use winnow_args::Args;
 
 // Same as nsupdate
 const DEFAULT_FUDGE: u16 = 300;
@@ -59,11 +59,11 @@ enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Parser)]
-#[clap(about, author, version)]
+#[derive(Debug, Args)]
+#[arg(version)]
 struct Opts {
     /// Path to config file
-    #[clap(short, long)]
+    #[arg(short, long)]
     config: PathBuf,
 }
 
