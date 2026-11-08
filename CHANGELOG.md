@@ -1,4 +1,4 @@
-### Unreleased
+### Version 1.0.0
 
 * Switch from clap to winnow-args for command line argument parsing ([PR #23])
   * Reduces executable size by 5% to 9%, depending on platform.
