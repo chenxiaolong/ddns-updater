@@ -2,7 +2,7 @@
 
 * Switch from clap to winnow-args for command line argument parsing ([PR #23])
   * Reduces executable size by 5% to 9%, depending on platform.
-* Update dependencies ([PR #22])
+* Update dependencies ([PR #22], [PR #24])
 
 ### Version 0.1.15
 
@@ -124,3 +124,4 @@ Initial release
 [PR #21]: https://github.com/chenxiaolong/ddns-updater/pull/21
 [PR #22]: https://github.com/chenxiaolong/ddns-updater/pull/22
 [PR #23]: https://github.com/chenxiaolong/ddns-updater/pull/23
+[PR #24]: https://github.com/chenxiaolong/ddns-updater/pull/24
