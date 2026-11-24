@@ -1,3 +1,7 @@
+### Unreleased
+
+* Update dependencies, including security fixes from hickory-dns 0.26.4 ([PR #25])
+
 ### Version 1.0.0
 
 * Switch from clap to winnow-args for command line argument parsing ([PR #23])
@@ -125,3 +129,4 @@ Initial release
 [PR #22]: https://github.com/chenxiaolong/ddns-updater/pull/22
 [PR #23]: https://github.com/chenxiaolong/ddns-updater/pull/23
 [PR #24]: https://github.com/chenxiaolong/ddns-updater/pull/24
+[PR #25]: https://github.com/chenxiaolong/ddns-updater/pull/25
