@@ -1,4 +1,4 @@
-### Unreleased
+### Version 1.0.1
 
 * Update dependencies, including security fixes from hickory-dns 0.26.4 ([PR #25])
 
