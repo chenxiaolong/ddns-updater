@@ -1,0 +1,16 @@
+name: cargo-deny
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  check:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@81891abc19297b21343b15ef67dc61e4aea74fda # v2.1.4

@@ -1,0 +1,31 @@
+[advisories]
+version = 2
+yanked = "deny"
+
+[licenses]
+version = 2
+include-dev = true
+allow = [
+    "Apache-2.0",
+    "GPL-3.0-only",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+]
+
+[bans]
+multiple-versions = "warn"
+multiple-versions-include-dev = true
+deny = [
+    # https://github.com/serde-rs/serde/issues/2538
+    { name = "serde_derive", version = ">=1.0.172,<1.0.184" },
+]
+
+[bans.build]
+executables = "deny"
+include-dependencies = true
+include-workspace = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
